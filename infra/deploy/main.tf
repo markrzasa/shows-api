@@ -9,6 +9,14 @@ locals {
   name_prefix = join("-", [var.region, var.environment, local.product])
 
   python_dir = join("/", [path.root, "..", "..", "python"])
+
+  database_flags = {
+    log_lock_waits     = "on"
+    log_checkpoints    = "on"
+    log_connections    = "on"
+    log_disconnections = "on"
+    log_temp_files     = "0"
+  }
 }
 
 resource "random_string" "suffix" {
@@ -25,6 +33,19 @@ resource "google_sql_database_instance" "shows" {
 
   settings {
     tier = var.db_instance_tier
+
+    dynamic "database_flags" {
+      for_each = local.database_flags
+
+      content {
+        name  = database_flags.key
+        value = database_flags.value
+      }
+    }
+
+    ip_configuration {
+      require_ssl = true
+    }
   }
 }
 
@@ -54,7 +75,8 @@ resource "google_storage_bucket" "app" {
   name    = join("-", [local.name_prefix, "app"])
   project = var.project
 
-  force_destroy = true
+  force_destroy               = true
+  uniform_bucket_level_access = true
 }
 
 resource "google_storage_bucket_object" "app" {

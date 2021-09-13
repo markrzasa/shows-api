@@ -30,6 +30,9 @@ destroy-prompt: check-env
 providers-lock:
 	cd $(TF_DEPLOY_DIR); terraform providers lock -platform=windows_amd64 -platform=darwin_amd64 -platform=linux_amd64
 
+tfsec:
+	cd $(TF_DEPLOY_DIR); tfsec
+
 postgres-up:
 	docker-compose -f $(THIS_DIR)/compose/postgres/docker-compose.yml up -d
 
