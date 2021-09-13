@@ -12,7 +12,7 @@ TEST_DIR = os.path.dirname(__file__)
 CSV_FILE = os.path.join(TEST_DIR, '../..', '..', 'datasource', 'netflix_titles.csv')
 
 TEST_URL = os.getenv('TEST_URL', 'http://localhost:8000')
-SHOWS_API = f'{"/".join([TEST_URL, "shows"])}/'
+SHOWS_API = f'{"/".join([TEST_URL, "shows"])}'
 NUM_TEST_SHOWS = 50
 
 
@@ -88,7 +88,7 @@ class TestApp(unittest.TestCase):
             )
         }
         # create the show
-        response = requests.post(SHOWS_API, json=show)
+        response = requests.post(f'{SHOWS_API}/', json=show)
         self.assert_response(response, show)
         created_show = response.json()
 
@@ -116,7 +116,7 @@ class TestApp(unittest.TestCase):
 
     @classmethod
     def create(cls, show: dict) -> dict:
-        response = requests.post(SHOWS_API, json=show)
+        response = requests.post(f'{SHOWS_API}/', json=show)
         response.raise_for_status()
         return response.json()
 

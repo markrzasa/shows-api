@@ -1,6 +1,5 @@
 import datetime
 import os
-from typing import List
 
 import sys
 import uuid
@@ -29,19 +28,18 @@ def __get_show_from_database(cursor, show_id: str) -> dict:
     return row_to_json(row)
 
 
-@shows_router.get('/')
-async def list_shows(limit: int = 50, offset: int = 0, sort: List[str] = None):
-    if not sort:
-        sort = ['title']
+@shows_router.get('')
+async def list_shows(limit: int = 50, offset: int = 0, sort: str = None):
+    sort_list = [c.strip() for c in (sort.split(',') if sort else ['title'])]
 
-    invalid_columns = [c for c in SQL_COLUMNS if c not in SQL_COLUMNS]
+    invalid_columns = [c for c in sort_list if c not in SQL_COLUMNS]
     if invalid_columns:
-        raise HTTPException(status_code=400, detail=f'invalid sort parameter {", ".join(sort)}')
+        raise HTTPException(status_code=400, detail=f'invalid sort parameter {", ".join(sort_list)}')
 
     conn = DatabaseConnection.get_connection()
     with conn.cursor() as cursor:
         # postgres sort like python to make testing either
-        cursor.execute(f'SELECT * FROM shows ORDER BY {",".join(sort)} collate "C" LIMIT {limit} OFFSET {offset};')
+        cursor.execute(f'SELECT * FROM shows ORDER BY {",".join(sort_list)} collate "C" LIMIT {limit} OFFSET {offset};')
         response = []
         rows = cursor.fetchmany(10)
         while rows:

@@ -1,6 +1,8 @@
 # Python
 reports/
 *.pyc
+.coverage
+out/
 
 # IntelliJ
 .idea/
