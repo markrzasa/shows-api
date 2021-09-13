@@ -1,0 +1,12 @@
+# Python
+reports/
+*.pyc
+
+# IntelliJ
+.idea/
+
+# Terraform
+infra/deploy/generated
+**/.terraform/*
+*.tfplan
+*.tfstate*
