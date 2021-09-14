@@ -1,7 +1,7 @@
 # shows-api
 
 This repo contains code to stand up a service that manages a catalog of shows. The service is backed by Google's App 
-Engine and Cloud SQL. Details of the API are available at the `/doc` endpoint.
+Engine and Cloud SQL. Details of the API are available at the `/docs` endpoint.
 
 ## Infrastructure
 
