@@ -58,3 +58,8 @@ The API tests can then be run like this:
 ```
 make api-tests
 ```
+
+When you're done, run this command to stop the Postgres container:
+```
+make postgres-down-rm-volume
+```
