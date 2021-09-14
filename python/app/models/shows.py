@@ -11,15 +11,15 @@ class Show(BaseModel):
     show_id: Optional[str] = None
     type: str
     title: str
-    director: str
-    cast: str
-    country: str
-    date_added: Optional[str] = None
-    release_year: str
-    rating: str
-    duration: str
-    listed_in: str
-    description: str
+    director: Optional[str] = ''
+    cast: Optional[str] = ''
+    country: Optional[str] = ''
+    date_added: Optional[str] = ''
+    release_year: Optional[str] = ''
+    rating: Optional[str] = ''
+    duration: Optional[str] = ''
+    listed_in: Optional[str] = ''
+    description: Optional[str] = ''
     uri: Optional[str] = None
 
     def to_values(self) -> str:

@@ -12,6 +12,7 @@ SQL_DB = os.getenv('SQL_DB', 'shows')
 SQL_HOST = os.getenv('SQL_HOST', 'localhost')
 SQL_PASS = os.getenv('SQL_PASS', 'postgres')
 SQL_PORT = os.getenv('SQL_PORT', '5432')
+SQL_SSL_MODE = os.getenv('SQL_SSL_MODE', 'allow')
 SQL_USER = os.getenv('SQL_USER', 'postgres')
 
 INSERT_COLUMNS = ','.join(SQL_COLUMNS).replace('cast', '"cast"')
@@ -41,9 +42,11 @@ class DatabaseConnection:
     @classmethod
     def get_connection(cls):
         if not cls.__conn:
-            logging.info(f'connecting to database {SQL_DB}')
+            sql_host = cls.sql_host()
+            logging.info(f'connecting to database {sql_host}.{SQL_DB}')
             cls.__conn = psycopg2.connect(
-                host=cls.sql_host(), port=SQL_PORT, database=SQL_DB, user=SQL_USER, password=cls.sql_password())
+                host=sql_host, port=SQL_PORT, database=SQL_DB,
+                user=SQL_USER, password=cls.sql_password(), sslmode=SQL_SSL_MODE)
             logging.info(f'connected to database {SQL_DB}')
             with cls.__conn.cursor() as cursor:
                 cursor.execute((

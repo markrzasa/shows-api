@@ -4,7 +4,9 @@ import os
 import sys
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from typing import Optional, List
+
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -29,17 +31,35 @@ def __get_show_from_database(cursor, show_id: str) -> dict:
 
 
 @shows_router.get('')
-async def list_shows(limit: int = 50, offset: int = 0, sort: str = None):
-    sort_list = [c.strip() for c in (sort.split(',') if sort else ['title'])]
-
-    invalid_columns = [c for c in sort_list if c not in SQL_COLUMNS]
-    if invalid_columns:
+async def list_shows(
+        limit: Optional[int] = 50,
+        offset: Optional[int] = 0,
+        sort: Optional[List[str]] = Query(default=['title']),
+        filter: Optional[List[str]] = Query(default=[])):
+    sort_list = [c.strip() for c in sort]
+    invalid_sort_columns = [c for c in sort_list if c not in SQL_COLUMNS]
+    if invalid_sort_columns:
         raise HTTPException(status_code=400, detail=f'invalid sort parameter {", ".join(sort_list)}')
+
+    filter_columns = {}
+    if filter:
+        filter_columns = {f.split('=', 1)[0].strip(): f.split('=', 1)[-1].strip() for f in filter}
+        invalid_filter_columns = [c for c in filter_columns.keys() if c not in SQL_COLUMNS]
+        if invalid_filter_columns:
+            raise HTTPException(status_code=400, detail=f'invalid filters parameter {filter}')
+
+    where_clause = ''
+    if filter_columns:
+        where_clause = 'WHERE ' + ' AND '.join([f"{c} LIKE '%{v}%'" for c, v in filter_columns.items()])
+        where_clause = where_clause + ' '
 
     conn = DatabaseConnection.get_connection()
     with conn.cursor() as cursor:
         # postgres sort like python to make testing either
-        cursor.execute(f'SELECT * FROM shows ORDER BY {",".join(sort_list)} collate "C" LIMIT {limit} OFFSET {offset};')
+        cursor.execute((
+            f'SELECT * FROM shows {where_clause}ORDER BY {",".join(sort_list)} '
+            f'collate "C" LIMIT {limit} OFFSET {offset};'
+        ))
         response = []
         rows = cursor.fetchmany(10)
         while rows:

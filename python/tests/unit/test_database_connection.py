@@ -32,7 +32,8 @@ class TestDatabaseConnection(unittest.TestCase):
                 port=SQL_PORT,
                 database=SQL_DB,
                 user=SQL_USER,
-                password='password'
+                password='password',
+                sslmode='allow'
             )
 
     @patch('app.psycopg2')
@@ -47,7 +48,8 @@ class TestDatabaseConnection(unittest.TestCase):
             port=SQL_PORT,
             database=SQL_DB,
             user=SQL_USER,
-            password=SQL_PASS
+            password=SQL_PASS,
+            sslmode='allow'
         )
 
     def test_escape_value(self):

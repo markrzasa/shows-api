@@ -1,5 +1,8 @@
+import copy
 import csv
 import os
+
+import json
 import requests
 import sys
 import unittest
@@ -15,17 +18,49 @@ TEST_URL = os.getenv('TEST_URL', 'http://localhost:8000')
 SHOWS_API = f'{"/".join([TEST_URL, "shows"])}'
 NUM_TEST_SHOWS = 50
 
+TEST_SHOW = {
+    'type': 'TV Show',
+    'title': 'Welcome Back, Kotter',
+    'director': '',
+    'cast': (
+        'Gabe Kaplan, Marcia Strassman, John Sylvester White, Robert Hegyes, Lawrence Hilton-Jacobs, '
+        'Ron Palillo, John Travolta'
+    ),
+    'country': 'United States',
+    'release_year': '1975',
+    'rating': '',
+    'duration': '30m',
+    'listed_in': 'TV Shows',
+    'description': (
+        "Gabe Kotter returns to his old high school -- this time as a teacher. He's put in charge of a class "
+        "full of unruly remedial students called the Sweathogs. They're a bunch of wisecracking, "
+        "underachieving and incorrigible students, and it takes all of Mr. Kotter's humor -- and experience as "
+        "a former Sweathog himself -- to deal with his class."
+    )
+}
 
-class TestApp(unittest.TestCase):
+
+class TestApi(unittest.TestCase):
     shows = []
 
     @classmethod
-    def setUpClass(cls) -> None:
-        response = requests.get(SHOWS_API)
-        response.raise_for_status()
-        for s in response.json():
-            requests.delete(''.join([TEST_URL, s['uri']])).raise_for_status()
+    def to_url(cls, show):
+        return ''.join([TEST_URL, show['uri']])
 
+    @classmethod
+    def delete_all(cls):
+        while True:
+            response = requests.get(SHOWS_API)
+            response.raise_for_status()
+            shows = response.json()
+            if not shows:
+                break
+            for s in response.json():
+                requests.delete(cls.to_url(s)).raise_for_status()
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.delete_all()
         with open(CSV_FILE) as handle:
             reader = csv.reader(handle, delimiter=',', quotechar='"')
             next(reader)
@@ -35,12 +70,18 @@ class TestApp(unittest.TestCase):
 
         cls.shows = sorted(cls.shows, key=lambda s: s['title'])
 
+    def setUp(self) -> None:
+        self.to_delete = []
+
+    def tearDown(self) -> None:
+        for s in self.to_delete:
+            response = requests.delete(self.to_url(s))
+            if response.status_code != 404:
+                response.raise_for_status()
+
     @classmethod
     def tearDownClass(cls) -> None:
-        for show in cls.shows:
-            response = requests.delete(''.join([TEST_URL, show['uri']]))
-            response.raise_for_status()
-
+        cls.delete_all()
         response = requests.get(SHOWS_API)
         response.raise_for_status()
         assert len(response.json()) == 0
@@ -67,44 +108,26 @@ class TestApp(unittest.TestCase):
             self.assertDictEqual(shows[i], self.shows[i + offset])
 
     def test_crud(self):
-        show = {
-            'type': 'TV Show',
-            'title': 'Welcome Back, Kotter!!!',
-            'director': '',
-            'cast': (
-                'Gabe Kaplan, Marcia Strassman, John Sylvester White, Robert Hegyes, Lawrence Hilton-Jacobs, '
-                'Ron Palillo, John Travolta'
-            ),
-            'country': 'United States',
-            'release_year': '2075',
-            'rating': '',
-            'duration': '30m',
-            'listed_in': 'TV Shows',
-            'description': (
-                "Gabe Kotter returns to his old high school -- this time as a teacher. He's put in charge of a class "
-                "full of unruly remedial students called the Sweathogs. They're a bunch of wisecracking, "
-                "underachieving and incorrigible students, and it takes all of Mr. Kotter's humor -- and experience as "
-                "a former Sweathog himself -- to deal with his class."
-            )
-        }
         # create the show
-        response = requests.post(f'{SHOWS_API}/', json=show)
-        self.assert_response(response, show)
+        response = requests.post(f'{SHOWS_API}/', json=TEST_SHOW)
+        self.cleanup_after(response)
+        self.assert_response(TEST_SHOW, response)
         created_show = response.json()
 
         # get the newly created show
         show_url = ''.join([TEST_URL, created_show['uri']])
         response = requests.get(show_url)
-        self.assert_response(response, show)
+        self.assert_response(TEST_SHOW, response)
 
         # update the show
-        show['title'] = 'Welcome Back, Kotter'
-        show['release_year'] = '1975'
+        show = copy.deepcopy(TEST_SHOW)
+        show['title'] = 'Welcome Back, Kotter!!!'
+        show['release_year'] = '2075'
         response = requests.put(show_url, json=show)
-        self.assert_response(response, show)
+        self.assert_response(show, response)
 
         response = requests.get(show_url)
-        self.assert_response(response, show)
+        self.assert_response(show, response)
 
         # delete the show
         response = requests.delete(show_url)
@@ -114,18 +137,47 @@ class TestApp(unittest.TestCase):
         response = requests.get(show_url)
         assert response.status_code == 404
 
+    def test_create_required_fields_only(self):
+        show = {
+            'type': 'TV Show',
+            'title': 'Welcome Back, Kotter!!!'
+        }
+        response = requests.post(f'{SHOWS_API}/', json=show)
+        self.cleanup_after(response)
+        self.assert_response(show, response)
+
+    def test_filter(self):
+        response = requests.post(f'{SHOWS_API}/', json=TEST_SHOW)
+        self.cleanup_after(response)
+        self.assert_response(TEST_SHOW, response)
+
+        filter_url = f'{SHOWS_API}?filter=title={TEST_SHOW["title"]}&filter=type={TEST_SHOW["type"]}'
+        response = requests.get(filter_url)
+        response.raise_for_status()
+        response_json = response.json()
+        assert len(response_json) == 1, f'unexpected response:\n{json.dumps(response_json, indent=2, sort_keys=True)}'
+        self.assert_show(TEST_SHOW, response.json()[0])
+
+        filter_url = f'{SHOWS_API}?filter=title={TEST_SHOW["title"]}&filter=type=not-{TEST_SHOW["type"]}'
+        response = requests.get(filter_url)
+        response.raise_for_status()
+        response_json = response.json()
+        assert len(response_json) == 0
+
     @classmethod
     def create(cls, show: dict) -> dict:
         response = requests.post(f'{SHOWS_API}/', json=show)
         response.raise_for_status()
         return response.json()
 
-    def assert_response(self, response, show: dict):
-        response.raise_for_status()
-        response_json = response.json()
-        del response_json['show_id']
-        del response_json['date_added']
-        del response_json['uri']
+    def cleanup_after(self, response):
+        if response.status_code == 200:
+            self.to_delete.append(response.json())
 
-        # make sure the created show matches the POST body
-        self.assertDictEqual(show, response_json)
+    def assert_response(self, show: dict, response):
+        response.raise_for_status()
+        self.assert_show(show, response.json())
+
+    def assert_show(self, expected, actual):
+        actual = {k: v for k, v in actual.items() if k in expected}
+        self.assertDictEqual(expected, actual)
