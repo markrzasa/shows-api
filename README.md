@@ -21,6 +21,9 @@ Run this command to apply the plan.
 make ENV=demo apply
 ```
 
+`make ENV=demo plan apply` is also used to redeploy the application as `plan/apply` will zip up the app and store it in
+the bucket that backs the app engine app.
+
 When you're done, run this command to delete the infrastructure.
 ```
 make ENV=demo destroy-prompt

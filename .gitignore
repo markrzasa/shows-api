@@ -8,7 +8,7 @@ out/
 .idea/
 
 # Terraform
-infra/deploy/generated
+terraform/deploy/generated
 **/.terraform/*
 *.tfplan
 *.tfstate*

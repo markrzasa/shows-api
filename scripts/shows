@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+import argparse
+import csv
+
+import os
+import requests
+
+
+SHOW_FIELDS = [
+    'show_id', 'type', 'title', 'director', 'cast', 'country', 'date_added',
+    'release_year', 'rating', 'duration', 'listed_in', 'description'
+]
+
+
+def populate(args):
+    shows_url = f'{args.url}/shows/'
+    with open(os.path.expanduser(args.csv), 'r') as handle:
+        reader = csv.reader(handle, delimiter=',', quotechar='"')
+        skip_first = True
+        for row in reader:
+            if skip_first:
+                skip_first = False
+                continue
+            response = requests.post(shows_url, json={SHOW_FIELDS[i]: row[i] for i in range(len(SHOW_FIELDS))})
+            response.raise_for_status()
+
+
+def clean(args):
+    shows_url = f'{args.url}/shows'
+    while True:
+        response = requests.get(shows_url)
+        response.raise_for_status()
+        shows = response.json()
+        if not shows:
+            break
+
+        for show in shows:
+            requests.delete(f'{args.url}{show["uri"]}')
+            response.raise_for_status()
+
+
+def main():
+    parser = argparse.ArgumentParser(description='manage the content of the shows service')
+    subparsers = parser.add_subparsers()
+    subparser = subparsers.add_parser('populate', help='populate the service from a csv file')
+    subparser.add_argument('--url', '-u', required=True, help='url of the service to update')
+    subparser.add_argument('--csv', '-c', required=True, help='populate the service with shows from this csv')
+    subparser.set_defaults(func=populate)
+    subparser = subparsers.add_parser('clean', help='delete all the shows in the service')
+    subparser.add_argument('--url', '-u', required=True, help='url of the service to clean')
+    subparser.set_defaults(func=clean)
+
+    args = parser.parse_args()
+    if 'func' not in args:
+        parser.print_usage()
+        return 1
+
+    args.func(args)
+    return 0
+
+
+if __name__ == '__main__':
+    main()

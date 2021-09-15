@@ -1,7 +1,8 @@
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-TF_DEPLOY_DIR := "$(THIS_DIR)/infra/deploy"
-TF_ENV_VARS := "$(THIS_DIR)/infra/env/$(ENV)/terraform.tfvars"
-TF_PLAN := "$(THIS_DIR)/infra/deploy/terraform.tfplan"
+TF_DIR := "$(THIS_DIR)/terraform"
+TF_DEPLOY_DIR := "$(TF_DIR)/deploy"
+TF_ENV_VARS := "$(TF_DIR)/env/$(ENV)/terraform.tfvars"
+TF_PLAN := "$(TF_DEPLOY_DIR)/terraform.tfplan"
 TEST_URL := "http://localhost:8000"
 
 requirements:
