@@ -1,5 +1,7 @@
 import logging
 import os
+import tempfile
+
 import psycopg2
 import sys
 from google.cloud import secretmanager
@@ -12,7 +14,6 @@ SQL_DB = os.getenv('SQL_DB', 'shows')
 SQL_HOST = os.getenv('SQL_HOST', 'localhost')
 SQL_PASS = os.getenv('SQL_PASS', 'postgres')
 SQL_PORT = os.getenv('SQL_PORT', '5432')
-SQL_SSL_MODE = os.getenv('SQL_SSL_MODE', 'allow')
 SQL_USER = os.getenv('SQL_USER', 'postgres')
 
 INSERT_COLUMNS = ','.join(SQL_COLUMNS).replace('cast', '"cast"')
@@ -22,15 +23,16 @@ class DatabaseConnection:
     __conn = None
 
     @classmethod
-    def sql_password(cls):
-        cloud_sql_connection_name = os.getenv('CLOUD_SQL_CONNECTION_NAME')
-        project_id = os.getenv('PROJECT_ID')
-        sql_pass_secret_version_id = os.getenv('SQL_PASS_SECRET_VERSION_ID')
+    def get_secret(cls, secret_version_id: str):
+        client = secretmanager.SecretManagerServiceClient()
+        response = client.access_secret_version(name=secret_version_id)
+        return response.payload.data.decode("UTF-8")
 
-        if cloud_sql_connection_name and project_id and sql_pass_secret_version_id:
-            client = secretmanager.SecretManagerServiceClient()
-            response = client.access_secret_version(name=sql_pass_secret_version_id)
-            return response.payload.data.decode("UTF-8")
+    @classmethod
+    def sql_password(cls):
+        sql_pass_secret_version_id = os.getenv('SQL_PASS_SECRET_VERSION_ID')
+        if sql_pass_secret_version_id:
+            return cls.get_secret(sql_pass_secret_version_id)
 
         return SQL_PASS
 
@@ -40,13 +42,48 @@ class DatabaseConnection:
         return f'/cloudsql/{cloud_sql_connection_name}' if cloud_sql_connection_name else SQL_HOST
 
     @classmethod
+    def sql_certs(cls):
+        return os.getenv('SQL_SERVER_CA_CERT_SECRET_VERSION_ID'),\
+            os.getenv('SQL_CLIENT_CERT_SECRET_VERSION_ID'),\
+            os.getenv('SQL_PRIVATE_KEY_SECRET_VERSION_ID')
+
+    @classmethod
+    def ssl_mode(cls):
+        return os.getenv('SQL_SSL_MODE', 'allow')
+
+    @classmethod
+    def connect(cls, sql_host):
+        root_cert, client_cert, private_key = cls.sql_certs()
+        if root_cert and client_cert and private_key:
+            logging.info('attempting to establish a secure connection')
+            with tempfile.TemporaryDirectory() as root_cert_dir:
+                root_cert_file = os.path.join(root_cert_dir, 'root.crt')
+                with open(root_cert_file, 'w') as handle:
+                    handle.write(cls.get_secret(root_cert))
+                client_cert_file = os.path.join(root_cert_dir, 'client.crt')
+                with open(client_cert_file, 'w') as handle:
+                    handle.write(cls.get_secret(client_cert))
+                private_key_file = os.path.join(root_cert_dir, 'private.key')
+                with open(private_key_file, 'w') as handle:
+                    handle.write(cls.get_secret(private_key))
+                os.chmod(private_key_file, 0o600)
+                return psycopg2.connect(
+                    host=sql_host, port=SQL_PORT, database=SQL_DB,
+                    user=SQL_USER, password=cls.sql_password(),
+                    sslmode=cls.ssl_mode(), sslrootcert=root_cert_file,
+                    sslcert=client_cert_file, sslkey=private_key_file
+                )
+
+        return psycopg2.connect(
+            host=sql_host, port=SQL_PORT, database=SQL_DB,
+            user=SQL_USER, password=cls.sql_password(), sslmode=cls.ssl_mode())
+
+    @classmethod
     def get_connection(cls):
         if not cls.__conn:
             sql_host = cls.sql_host()
             logging.info(f'connecting to database {sql_host}.{SQL_DB}')
-            cls.__conn = psycopg2.connect(
-                host=sql_host, port=SQL_PORT, database=SQL_DB,
-                user=SQL_USER, password=cls.sql_password(), sslmode=SQL_SSL_MODE)
+            cls.__conn = cls.connect(sql_host)
             logging.info(f'connected to database {SQL_DB}')
             with cls.__conn.cursor() as cursor:
                 cursor.execute((

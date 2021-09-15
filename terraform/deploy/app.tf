@@ -53,21 +53,21 @@ resource "google_app_engine_standard_app_version" "app" {
   }
 
   env_variables = {
-//    CLOUD_SQL_CONNECTION_NAME = google_sql_database_instance.shows.connection_name
-
-    PROJECT_ID                 = var.project
-    SQL_PASS_SECRET_VERSION_ID = google_secret_manager_secret_version.database_password.id
-
-    SQL_DB       = google_sql_database.shows.name
-    SQL_HOST     = google_sql_database_instance.shows.private_ip_address
-    SQL_USER     = google_sql_user.shows.name
-//    SQL_SSL_MODE = "verify-ca"
-    SQL_PASS     = google_sql_user.shows.password
+    PROJECT_ID                           = var.project
+    SQL_SERVER_CA_CERT_SECRET_VERSION_ID = module.secrets["database_server_ca_cert"].secret_version_id
+    SQL_CLIENT_CERT_SECRET_VERSION_ID    = module.secrets["database_client_cert"].secret_version_id
+    SQL_PRIVATE_KEY_SECRET_VERSION_ID    = module.secrets["database_private_key"].secret_version_id
+    SQL_PASS_SECRET_VERSION_ID           = module.secrets["database_password"].secret_version_id
+    SQL_DB                               = google_sql_database.shows.name
+    SQL_HOST                             = google_sql_database_instance.shows.private_ip_address
+    SQL_USER                             = google_sql_user.shows.name
+    SQL_SSL_MODE                         = "require"
+    SQL_PASS                             = google_sql_user.shows.password
   }
 
   vpc_access_connector {
     name = google_vpc_access_connector.shows.self_link
   }
 
-  noop_on_destroy = true
+  noop_on_destroy = false
 }

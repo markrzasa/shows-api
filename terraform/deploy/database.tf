@@ -38,7 +38,7 @@ resource "google_sql_database_instance" "shows" {
     ip_configuration {
       ipv4_enabled    = false
       private_network = google_compute_network.shows.id
-      require_ssl     = false
+      require_ssl     = true
     }
   }
 }
@@ -53,9 +53,13 @@ resource "random_password" "shows" {
 }
 
 resource "google_sql_user" "shows" {
-  depends_on = [google_sql_database.shows]
-
   instance = google_sql_database_instance.shows.name
   name     = "shows"
   password = random_password.shows.result
+}
+
+resource "google_sql_ssl_cert" "shows" {
+  common_name = "show-app"
+  instance    = google_sql_database_instance.shows.name
+  project     = var.project
 }

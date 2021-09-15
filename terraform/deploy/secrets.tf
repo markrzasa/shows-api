@@ -2,25 +2,18 @@
 
 data "google_app_engine_default_service_account" "default" {}
 
-resource "google_secret_manager_secret" "database_password" {
-  secret_id = "database_password"
+module "secrets" {
+  source = "../modules/secret"
 
-  replication {
-    automatic = true
+  for_each = {
+    database_password       = random_password.shows.result
+    database_server_ca_cert = google_sql_ssl_cert.shows.server_ca_cert
+    database_client_cert    = google_sql_ssl_cert.shows.cert
+    database_private_key    = google_sql_ssl_cert.shows.private_key
   }
-}
 
-resource "google_secret_manager_secret_version" "database_password" {
-  secret = google_secret_manager_secret.database_password.id
-
-  secret_data = random_password.shows.result
-}
-
-resource "google_secret_manager_secret_iam_binding" "app_enging" {
-  project   = var.project
-  secret_id = google_secret_manager_secret.database_password.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  members = [
-    join(":", ["serviceAccount", data.google_app_engine_default_service_account.default.email])
-  ]
+  data    = each.value
+  id      = each.key
+  members = [join(":", ["serviceAccount", data.google_app_engine_default_service_account.default.email])]
+  project = var.project
 }
