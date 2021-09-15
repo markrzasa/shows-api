@@ -36,6 +36,13 @@ async def list_shows(
         offset: Optional[int] = 0,
         sort: Optional[List[str]] = Query(default=['title']),
         filter: Optional[List[str]] = Query(default=[])):
+    """
+    list a set of shows
+    - **limit**: the maximum number of shows to return
+    - **offset**: return results starting at this offset
+    - **sort**: sort results based on this list of fields. sort can be used more than once
+    - **filter**: filter results based on shows with fields like these filters. filter can be used more than once
+    """
     sort_list = [c.strip() for c in sort]
     invalid_sort_columns = [c for c in sort_list if c not in SQL_COLUMNS]
     if invalid_sort_columns:
@@ -70,6 +77,10 @@ async def list_shows(
 
 @shows_router.get('/{show_id}', response_model=Show)
 async def get(show_id: str):
+    """
+    return the show with the given id
+    - **show_id**: return the show with this show_id
+    """
     conn = DatabaseConnection.get_connection()
     with conn.cursor() as cursor:
         return jsonable_encoder(__get_show_from_database(cursor, show_id))
@@ -77,6 +88,11 @@ async def get(show_id: str):
 
 @shows_router.put('/{show_id}', response_model=Show)
 async def put(show_id: str, show: Show):
+    """
+    update the show with the given show_id
+    - **show_id**: the id of the show to update
+    - **show**: body containing fields to update
+    """
     conn = DatabaseConnection.get_connection()
     with conn.cursor() as cursor:
         retrieved_show = __get_show_from_database(cursor, show_id)
@@ -87,6 +103,10 @@ async def put(show_id: str, show: Show):
 
 @shows_router.post('/', response_model=Show)
 async def create(show: Show):
+    """
+    create a show
+    - **show**: create a show with these fields. The fields type and title are required.
+    """
     show.show_id = str(uuid.uuid4())
     if not show.date_added:
         show.date_added = datetime.datetime.utcnow().strftime('%B %m %Y')
@@ -101,6 +121,10 @@ async def create(show: Show):
 
 @shows_router.delete('/{show_id}')
 async def delete(show_id: str):
+    """
+    delete the show with the given id
+    - **show_id**: the show with this id will be deleted
+    """
     conn = DatabaseConnection.get_connection()
     with conn.cursor() as cursor:
         cmd = f"DELETE FROM shows WHERE show_id='{show_id}';"

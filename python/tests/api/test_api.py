@@ -164,6 +164,17 @@ class TestApi(unittest.TestCase):
         response_json = response.json()
         assert len(response_json) == 0
 
+    def test_double_delete(self):
+        response = requests.post(f'{SHOWS_API}/', json=TEST_SHOW)
+        self.cleanup_after(response)
+        self.assert_response(TEST_SHOW, response)
+
+        show_url = self.to_url(response.json())
+        response = requests.delete(show_url)
+        response.raise_for_status()
+        response = requests.delete(show_url)
+        response.raise_for_status()
+
     @classmethod
     def create(cls, show: dict) -> dict:
         response = requests.post(f'{SHOWS_API}/', json=show)

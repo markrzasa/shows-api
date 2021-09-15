@@ -16,4 +16,7 @@ alive_router = APIRouter(
 
 @alive_router.get('')
 async def alive():
+    """
+    return whether or not the service is alive
+    """
     return {'alive': True if DatabaseConnection.get_connection() else False}
