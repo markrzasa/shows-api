@@ -38,7 +38,7 @@ make tfsec
 
 ### Static Analysis and Unittests
 
-Run the following command to lint and unittest Python code:
+Run the following command to lint and unittest Python and Terraform code:
 ```
 make code-quality
 ```
