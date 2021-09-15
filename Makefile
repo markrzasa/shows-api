@@ -55,4 +55,4 @@ api-tests: requirements test-requirements
 unit-tests: requirements test-requirements
 	pytest --cov=app --cov=lib --cov-report=html:reports/html_dir $(THIS_DIR)/python/tests/unit/
 
-code-quality: lint unit-tests
+code-quality: tfsec lint unit-tests
