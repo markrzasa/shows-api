@@ -56,6 +56,8 @@ class DatabaseConnection:
         root_cert, client_cert, private_key = cls.sql_certs()
         if root_cert and client_cert and private_key:
             logging.info('attempting to establish a secure connection')
+            # If the app has been provisioned with certificates and a key, write the certs and key to temp files to
+            # establish a connection. The temporary files will be removed when the code leaves the with block.
             with tempfile.TemporaryDirectory() as root_cert_dir:
                 root_cert_file = os.path.join(root_cert_dir, 'root.crt')
                 with open(root_cert_file, 'w') as handle:
