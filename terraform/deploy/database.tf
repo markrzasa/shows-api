@@ -18,6 +18,8 @@ resource "random_string" "suffix" {
 
 // tfsec:ignore:google-sql-enable-backup - the data in this database does not need to be backed up
 resource "google_sql_database_instance" "shows" {
+  depends_on = [google_vpc_access_connector.shows]
+
   name                = join("-", [local.name_prefix, "db-instance", random_string.suffix.result])
   region              = var.region
   database_version    = "POSTGRES_11"
@@ -44,7 +46,9 @@ resource "google_sql_database_instance" "shows" {
 }
 
 resource "google_sql_database" "shows" {
-  name = "shows"
+  depends_on = [google_sql_user.shows]
+
+  name     = "shows"
   instance = google_sql_database_instance.shows.name
 }
 

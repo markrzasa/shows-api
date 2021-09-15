@@ -71,3 +71,15 @@ resource "google_app_engine_standard_app_version" "app" {
 
   noop_on_destroy = false
 }
+
+resource "google_app_engine_service_split_traffic" "app" {
+  service = google_app_engine_standard_app_version.app.service
+
+  migrate_traffic = false
+  split {
+    shard_by = "IP"
+    allocations = {
+      (google_app_engine_standard_app_version.app.version_id) = 1.0
+    }
+  }
+}
