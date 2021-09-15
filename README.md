@@ -29,9 +29,14 @@ When you're done, run this command to delete the infrastructure.
 make ENV=demo destroy-prompt
 ```
 
+Use this command to check the Terraform code for security violations.
+```
+make tfsec
+```
+
 ## Testing
 
-### Lint and Unittests
+### Static Analysis and Unittests
 
 Run the following command to lint and unittest Python code:
 ```
