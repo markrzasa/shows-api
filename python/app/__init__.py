@@ -18,6 +18,9 @@ SQL_USER = os.getenv('SQL_USER', 'postgres')
 
 INSERT_COLUMNS = ','.join(SQL_COLUMNS).replace('cast', '"cast"')
 
+SHOWS_TABLE = 'shows'
+LISTED_IN_TABLE = 'listed_in'
+
 
 class DatabaseConnection:
     __conn = None
@@ -89,7 +92,7 @@ class DatabaseConnection:
             logging.info(f'connected to database {SQL_DB}')
             with cls.__conn.cursor() as cursor:
                 cursor.execute((
-                    'CREATE TABLE IF NOT EXISTS shows ('
+                    f'CREATE TABLE IF NOT EXISTS {SHOWS_TABLE} ('
                     '  show_id      varchar,'
                     '  type         varchar,'
                     '  title        varchar,'
@@ -103,7 +106,16 @@ class DatabaseConnection:
                     '  listed_in    varchar,'
                     '  description  varchar,'
                     '  PRIMARY      KEY(show_id)'
-                    ');'))
+                    ');'
+                ))
+                cursor.execute((
+                    f'CREATE TABLE IF NOT EXISTS {LISTED_IN_TABLE} ('
+                    f'  show_id   varchar REFERENCES {SHOWS_TABLE}(show_id) ON DELETE CASCADE,'
+                    '  listed_in varchar,'
+                    '  UNIQUE (show_id, listed_in),'
+                    f'FOREIGN KEY(show_id) REFERENCES {SHOWS_TABLE}(show_id)'
+                    ');'
+                ))
                 cls.__conn.commit()
             logging.info('table ready')
 
@@ -118,8 +130,9 @@ class DatabaseConnection:
             logging.info('closed database connection')
 
 
-def escape_value(v: str) -> str:
-    escaped_v = v.replace("'", "''")
+def to_db_value(v) -> str:
+    db_v = ','.join(v) if isinstance(v, list) else v
+    escaped_v = db_v.replace("'", "''")
     return f"'{escaped_v}'"
 
 

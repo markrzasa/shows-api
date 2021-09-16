@@ -12,7 +12,7 @@ from fastapi.encoders import jsonable_encoder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from app.models.shows import Show
-from app import DatabaseConnection, INSERT_COLUMNS
+from app import DatabaseConnection, INSERT_COLUMNS, LISTED_IN_TABLE, to_db_value
 from lib import rows_to_json, row_to_json, SQL_COLUMNS
 
 shows_router = APIRouter(
@@ -22,12 +22,25 @@ shows_router = APIRouter(
 )
 
 
-def __get_show_from_database(cursor, show_id: str) -> dict:
+def get_show_from_database(cursor, show_id: str) -> dict:
     cursor.execute(f'SELECT * FROM shows WHERE show_id=\'{show_id}\';')
     row = cursor.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail='show not fond')
     return row_to_json(row)
+
+
+def update_listed_in(cursor, show_id: str, show: Show, show_in_db: dict = None):
+    db_listed_in = show_in_db.get('listed_in', []) if show_in_db else []
+    to_delete = list(set(db_listed_in) - set(show.listed_in))
+    to_delete = [to_db_value(to_delete) for d in to_delete]
+    if to_delete:
+        cursor.execute(f'DELETE FROM {LISTED_IN_TABLE} WHERE listed_in IN ({",".join(to_delete)});')
+    for l_in in show.listed_in:
+        cursor.execute((
+            f"INSERT INTO {LISTED_IN_TABLE} (show_id, listed_in) VALUES('{show_id}', {to_db_value(l_in)}) "
+            "ON CONFLICT (show_id, listed_in) DO NOTHING;"
+        ))
 
 
 @shows_router.get('')
@@ -83,7 +96,7 @@ async def get(show_id: str):
     """
     conn = DatabaseConnection.get_connection()
     with conn.cursor() as cursor:
-        return jsonable_encoder(__get_show_from_database(cursor, show_id))
+        return jsonable_encoder(get_show_from_database(cursor, show_id))
 
 
 @shows_router.put('/{show_id}', response_model=Show)
@@ -95,9 +108,11 @@ async def put(show_id: str, show: Show):
     """
     conn = DatabaseConnection.get_connection()
     with conn.cursor() as cursor:
-        retrieved_show = __get_show_from_database(cursor, show_id)
+        retrieved_show = get_show_from_database(cursor, show_id)
         show.uri = retrieved_show['uri']
         cursor.execute(f'UPDATE shows SET {show.to_sql_set()} WHERE show_id=\'{show_id}\';')
+        update_listed_in(cursor, show_id, show, retrieved_show)
+        conn.commit()
         return jsonable_encoder(show)
 
 
@@ -115,6 +130,7 @@ async def create(show: Show):
     with conn.cursor() as cursor:
         cmd = f"INSERT INTO shows ({INSERT_COLUMNS}) VALUES({(show.to_values())});"
         cursor.execute(cmd)
+        update_listed_in(cursor, show.show_id, show)
         conn.commit()
         return show
 

@@ -12,8 +12,12 @@ def show_uri(show_id: str) -> str:
 
 def row_to_json(row: tuple) -> dict:
     show = {SQL_COLUMNS[i]: row[i] for i in range(len(row))}
+    cast = show.get('cast')
+    listed_in = show.get('listed_in')
     show.update({
-        'uri': show_uri(row[0])
+        'uri': show_uri(row[0]),
+        'cast': [a.strip() for a in cast.split(',')],
+        'listed_in': [li.strip() for li in listed_in.split(',')]
     })
     return show
 

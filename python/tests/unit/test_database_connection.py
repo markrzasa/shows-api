@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from app import DatabaseConnection, SQL_PORT, SQL_DB, SQL_USER, SQL_HOST, SQL_PASS, escape_value, init_logging
+from app import DatabaseConnection, SQL_PORT, SQL_DB, SQL_USER, SQL_HOST, SQL_PASS, to_db_value, init_logging
 
 
 class TestDatabaseConnection(unittest.TestCase):
@@ -63,4 +63,4 @@ class TestDatabaseConnection(unittest.TestCase):
         )
 
     def test_escape_value(self):
-        self.assertEqual("'don''t'", escape_value("don't"))
+        self.assertEqual("'don''t'", to_db_value("don't"))

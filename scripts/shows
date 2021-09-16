@@ -3,6 +3,8 @@ import argparse
 import csv
 
 import os
+
+import json
 import requests
 
 
@@ -16,12 +18,13 @@ def populate(args):
     shows_url = f'{args.url}/shows/'
     with open(os.path.expanduser(args.csv), 'r') as handle:
         reader = csv.reader(handle, delimiter=',', quotechar='"')
-        skip_first = True
+        next(reader)
         for row in reader:
-            if skip_first:
-                skip_first = False
-                continue
-            response = requests.post(shows_url, json={SHOW_FIELDS[i]: row[i] for i in range(len(SHOW_FIELDS))})
+            show = {SHOW_FIELDS[i]: row[i] for i in range(len(SHOW_FIELDS))}
+            show['cast'] = [a.strip() for a in show['cast'].split(',')]
+            show['listed_in'] = [s.strip() for s in show['listed_in'].split(',')]
+            print(json.dumps(show, indent=2, sort_keys=True))
+            response = requests.post(shows_url, json=show)
             response.raise_for_status()
 
 
