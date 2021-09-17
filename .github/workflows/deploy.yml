@@ -24,10 +24,12 @@ jobs:
         run: brew install tfsec
       - name: code-quality
         run: make code-quality
-      - uses: actions-hub/gcloud@master
-        env:
-          PROJECT_ID: ${{secrets.GCLOUD_PROJECT_ID}}
-          APPLICATION_CREDENTIALS: ${{secrets.GOOGLE_APPLICATION_CREDENTIALS}}
+      - name: setup gcp
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: ${{secrets.GCLOUD_PROJECT_ID}}
+          service_account_key: ${{secrets.GOOGLE_APPLICATION_CREDENTIALS}}
+          export_default_credentials: true
       - name: setup terraform backend
         run: |
           echo "bucket = \"${{secrets.TF_STATE_BUCKET}}\"" > ./terraform/env/${ENV}/terraform.backend
