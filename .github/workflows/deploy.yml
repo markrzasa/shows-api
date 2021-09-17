@@ -16,10 +16,10 @@ jobs:
         with:
           python-version: '3.9'
           architecture: 'x64'
-     - name: install tfsec
-       run: brew install tfsec
-     - name: code-quality
-       run: make code-quality
+      - name: install tfsec
+        run: brew install tfsec
+      - name: code-quality
+        run: make code-quality
 
   plan:
     needs: code-quality
