@@ -8,8 +8,7 @@ on:
       - main
 
 jobs:
-  build:
-    name: deploy
+  plan:
     runs-on: ubuntu-latest
     env:
       ENV: demo
@@ -36,3 +35,39 @@ jobs:
           echo "prefix = \"${{secrets.TF_STATE_PREFIX}}\"" >> ./terraform/env/${ENV}/terraform.backend
       - name: terraform plan
         run: make env=${ENV} plan
+      - uses: actions/upload-artifact@v2
+        with:
+          name: terraform-plan
+          path: ./terraform/deploy/terraform.tfplan
+      - uses: actions/upload-artifact@v2
+        with:
+          name: app-zip
+          path: ./terraform/deploy/generated/app.zip
+
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      ENV: demo
+    environment: shows-api-demo
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup gcp
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: ${{secrets.GCLOUD_PROJECT_ID}}
+          service_account_key: ${{secrets.GOOGLE_APPLICATION_CREDENTIALS}}
+          export_default_credentials: true
+      - name: setup terraform backend
+        run: |
+          echo "bucket = \"${{secrets.TF_STATE_BUCKET}}\"" > ./terraform/env/${ENV}/terraform.backend
+          echo "prefix = \"${{secrets.TF_STATE_PREFIX}}\"" >> ./terraform/env/${ENV}/terraform.backend
+      - name: terraform plan
+        run: make env=${ENV} plan
+      - uses: actions/download-artifact@v2
+        with:
+          name: terraform-plan
+          path: ./terraform/deploy/terraform.tfplan
+      - uses: actions/upload-artifact@v2
+        with:
+          name: app-zip
+          path: ./terraform/deploy/generated/app.zip
