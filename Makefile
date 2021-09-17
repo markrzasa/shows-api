@@ -1,9 +1,10 @@
 THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-TF_DIR := "$(THIS_DIR)/terraform"
-TF_DEPLOY_DIR := "$(TF_DIR)/deploy"
-TF_ENV_VARS := "$(TF_DIR)/env/$(ENV)/terraform.tfvars"
-TF_PLAN := "$(TF_DEPLOY_DIR)/terraform.tfplan"
-TEST_URL := "http://localhost:8000"
+TF_DIR := $(THIS_DIR)/terraform
+TF_DEPLOY_DIR := $(TF_DIR)/deploy
+TF_ENV_DIR := "$(TF_DIR)/env/$(ENV)"
+TF_ENV_VARS := $(TF_ENV_DIR)/terraform.tfvars
+TF_PLAN := $(TF_DEPLOY_DIR)/terraform.tfplan
+TEST_URL := http://localhost:8000
 
 requirements:
 	pip install -r $(THIS_DIR)/python/requirements.txt
@@ -17,7 +18,7 @@ ifndef ENV
 endif
 
 init:
-	cd $(TF_DEPLOY_DIR); terraform init
+	cd $(TF_DEPLOY_DIR); terraform init -backend=true -backend-config=$(TF_ENV_DIR)/terraform.backend
 
 plan: check-env init
 	cd $(TF_DEPLOY_DIR); terraform plan -var environment=$(ENV) -var-file $(TF_ENV_VARS) -out $(TF_PLAN)
