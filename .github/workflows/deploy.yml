@@ -8,7 +8,21 @@ on:
       - main
 
 jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: set python version
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+     - name: install tfsec
+       run: brew install tfsec
+     - name: code-quality
+       run: make code-quality
+
   plan:
+    needs: code-quality
     runs-on: ubuntu-latest
     env:
       ENV: demo
@@ -28,15 +42,6 @@ jobs:
         run: |
           echo "bucket = \"${{secrets.TF_STATE_BUCKET}}\"" > ./terraform/env/${ENV}/terraform.backend
           echo "prefix = \"${{secrets.TF_STATE_PREFIX}}\"" >> ./terraform/env/${ENV}/terraform.backend
-      - name: set python version
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-          architecture: 'x64'
-      - name: install tfsec
-        run: brew install tfsec
-      - name: code-quality
-        run: make code-quality
       - name: terraform plan
         run: make env=${ENV} plan
       - uses: actions/upload-artifact@v2
