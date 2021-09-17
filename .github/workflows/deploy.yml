@@ -45,6 +45,8 @@ jobs:
           path: ./terraform/deploy/generated/app.zip
 
   apply:
+    needs:
+      - plan
     runs-on: ubuntu-latest
     env:
       ENV: demo
