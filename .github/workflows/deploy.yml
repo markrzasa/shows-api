@@ -30,7 +30,7 @@ jobs:
           APPLICATION_CREDENTIALS: ${{secrets.GOOGLE_APPLICATION_CREDENTIALS}}
       - name: setup terraform backend
         run: |
-          echo "bucket = \"${{secrets.TF_STATE_BUCKET}}\"" > ./terraform/${ENV}/demo/terraform.backend
-          echo "prefix = \"${{secrets.TF_STATE_PREFIX}}\"" >> ./terraform/${ENV}/demo/terraform.backend
-      - name: plan
+          echo "bucket = \"${{secrets.TF_STATE_BUCKET}}\"" > ./terraform/env/${ENV}/terraform.backend
+          echo "prefix = \"${{secrets.TF_STATE_PREFIX}}\"" >> ./terraform/env/${ENV}/terraform.backend
+      - name: terraform plan
         run: make env=${ENV} plan
