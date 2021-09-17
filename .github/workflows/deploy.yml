@@ -23,3 +23,7 @@ jobs:
         run: brew install tfsec
       - name: code-quality
         run: make code-quality
+      - uses: actions-hub/gcloud@master
+          env:
+            PROJECT_ID: ${{secrets.GCLOUD_PROJECT_ID}}
+            APPLICATION_CREDENTIALS: ${{secrets.GOOGLE_APPLICATION_CREDENTIALS}}
