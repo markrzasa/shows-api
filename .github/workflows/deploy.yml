@@ -81,3 +81,17 @@ jobs:
           path: ./terraform/deploy/generated/
       - name: terraform apply
         run: make env=${ENV} apply
+
+  test:
+    needs: apply
+    runs-on: ubuntu-latest
+    steps:
+      - name: set python version
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+      - name: terraform apply
+        run: make api-tests
+        env:
+          TEST_URL: https://fourth-library-325721.ue.r.appspot.com
