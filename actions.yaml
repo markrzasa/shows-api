@@ -1,5 +1,0 @@
-jobs:
-  code-quality:
-    steps: code-quality
-      - id: code-quality
-        run: make code-quality
