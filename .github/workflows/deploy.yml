@@ -13,15 +13,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: install tfsec
-        uses: jaxxstorm/action-install-gh-release@release/v1.2.0
-        with:
-          repo: aquasecurity/tfsec
-          tag: v0.58.9
       - name: set python version
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
           architecture: 'x64'
+      - name: install tfsec
+        run: brew install tfsec
       - name: code-quality
         run: make code-quality
