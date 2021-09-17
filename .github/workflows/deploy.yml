@@ -11,7 +11,8 @@ jobs:
   build:
     name: deploy
     runs-on: ubuntu-latest
-
+    env:
+      ENV: demo
     steps:
       - uses: actions/checkout@v2
       - name: set python version
@@ -27,3 +28,9 @@ jobs:
         env:
           PROJECT_ID: ${{secrets.GCLOUD_PROJECT_ID}}
           APPLICATION_CREDENTIALS: ${{secrets.GOOGLE_APPLICATION_CREDENTIALS}}
+      - name: setup terraform backend
+        run: |
+          echo "bucket = \"${{secrets.TF_STATE_BUCKET}}\"" > ./terraform/${ENV}/demo/terraform.backend
+          echo "prefix = \"${{secrets.TF_STATE_PREFIX}}\"" >> ./terraform/${ENV}/demo/terraform.backend
+      - name: plan
+        run: make env=${ENV} plan
