@@ -23,7 +23,7 @@ init:
 plan: check-env init
 	cd $(TF_DEPLOY_DIR); terraform plan -var environment=$(ENV) -var-file $(TF_ENV_VARS) -out $(TF_PLAN)
 
-apply: check-env
+apply: check-env init
 	cd $(TF_DEPLOY_DIR); terraform apply $(TF_PLAN)
 
 destroy-prompt: check-env
