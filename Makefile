@@ -47,7 +47,7 @@ postgres-down-rm-volume:
 run-app: requirements
 	uvicorn main:app --app-dir python/app --reload
 
-lint:
+lint: requirements
 	flake8 --config $(THIS_DIR)/flake8.ini $(THIS_DIR)/python/
 
 api-tests: requirements test-requirements
