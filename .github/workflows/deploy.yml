@@ -99,6 +99,6 @@ jobs:
           python-version: '3.9'
           architecture: 'x64'
       - name: api-tests
-        run: make api-tests
+        run: make TEST_URL=${{env.TEST_URL}} api-tests
         env:
           TEST_URL: https://fourth-library-325721.ue.r.appspot.com
