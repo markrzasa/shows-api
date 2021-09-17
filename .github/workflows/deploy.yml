@@ -41,11 +41,11 @@ jobs:
         run: make env=${ENV} plan
       - uses: actions/upload-artifact@v2
         with:
-          name: terraform-plan
+          name: terraform.tfplan
           path: ./terraform/deploy/terraform.tfplan
       - uses: actions/upload-artifact@v2
         with:
-          name: app-zip
+          name: app.zip
           path: ./terraform/deploy/generated/app.zip
 
   apply:
@@ -73,11 +73,11 @@ jobs:
           echo "prefix = \"${{secrets.TF_STATE_PREFIX}}\"" >> ./terraform/env/${ENV}/terraform.backend
       - uses: actions/download-artifact@v2
         with:
-          name: terraform-plan
-          path: ./terraform/deploy/terraform.tfplan
-      - uses: actions/upload-artifact@v2
+          name: terraform.tfplan
+          path: ./terraform/deploy/
+      - uses: actions/download-artifact@v2
         with:
-          name: app-zip
-          path: ./terraform/deploy/generated/app.zip
+          name: app.zip
+          path: ./terraform/deploy/generated/
       - name: terraform apply
         run: make env=${ENV} apply
