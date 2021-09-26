@@ -27,6 +27,7 @@ tags_metadata = [
 
 app = FastAPI(
     on_startup=[init_logging, Engine.get_engine],
+    on_shutdown=[Engine.shutdown],
     openapi_tags=tags_metadata
 )
 
