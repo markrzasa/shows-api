@@ -13,8 +13,6 @@ import uuid
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
-from lib import row_to_json
-
 TEST_DIR = os.path.dirname(__file__)
 CSV_FILE = os.path.join(TEST_DIR, '../..', '..', 'datasource', 'netflix_titles.csv')
 
@@ -22,6 +20,11 @@ TEST_URL = os.getenv('TEST_URL', 'http://localhost:8000')
 SHOWS_API = f'{"/".join([TEST_URL, "shows"])}'
 SUMMARY_API = f'{"/".join([TEST_URL, "summary"])}'
 NUM_TEST_SHOWS = 50
+
+SHOW_FIELDS = [
+    'type', 'title', 'director', 'cast', 'country', 'date_added', 'release_year',
+    'rating', 'duration', 'listed_in', 'description'
+]
 
 TEST_SHOW = {
     'type': 'TV Show',
@@ -77,14 +80,17 @@ class TestApi(unittest.TestCase):
         cls.logger.info('populating service with shows')
         cls.delete_all()
         with open(CSV_FILE) as handle:
+            shows_url = f'{SHOWS_API}/'
             reader = csv.reader(handle, delimiter=',', quotechar='"')
             next(reader)
             for i in range(NUM_TEST_SHOWS):
-                show = row_to_json(tuple(next(reader)))
+                row = next(reader)
+                show = {SHOW_FIELDS[i-1]: row[i] for i in range(1, len(SHOW_FIELDS))}
                 cls.logger.info(f'creating show {show["title"]}')
+                show['cast'] = [a.strip() for a in show['cast'].split(',')]
+                show['listed_in'] = [s.strip() for s in show['listed_in'].split(',')]
                 cls.shows.append(cls.create(show))
                 cls.logger.info(f'created show {show["title"]}')
-
         cls.shows = sorted(cls.shows, key=lambda s: s['title'])
         cls.logger.info('populated service with shows')
 
@@ -199,7 +205,7 @@ class TestApi(unittest.TestCase):
             self.assertEqual(1, summary['total_by_listed_in'][li])
 
         listings.append(str(uuid.uuid4()))
-        summary_show['listings'] = listings
+        summary_show['listed_in'] = listings
         self.put(show_url, summary_show)
 
         summary = self.get_summary()
@@ -207,7 +213,7 @@ class TestApi(unittest.TestCase):
             self.assertEqual(1, summary['total_by_listed_in'][li])
 
         deleted_listing = listings.pop(0)
-        summary_show['listings'] = listings
+        summary_show['listed_in'] = listings
         self.put(show_url, summary_show)
 
         summary = self.get_summary()
@@ -269,4 +275,6 @@ class TestApi(unittest.TestCase):
 
     def assert_show(self, expected, actual):
         actual = {k: v for k, v in actual.items() if k in expected}
+        if 'listed_in' in expected:
+            expected['listed_in'] = sorted(expected['listed_in'])
         self.assertDictEqual(expected, actual)

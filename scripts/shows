@@ -9,8 +9,8 @@ import requests
 
 
 SHOW_FIELDS = [
-    'show_id', 'type', 'title', 'director', 'cast', 'country', 'date_added',
-    'release_year', 'rating', 'duration', 'listed_in', 'description'
+    'type', 'title', 'director', 'cast', 'country', 'date_added', 'release_year',
+    'rating', 'duration', 'listed_in', 'description'
 ]
 
 
@@ -20,7 +20,7 @@ def populate(args):
         reader = csv.reader(handle, delimiter=',', quotechar='"')
         next(reader)
         for row in reader:
-            show = {SHOW_FIELDS[i]: row[i] for i in range(len(SHOW_FIELDS))}
+            show = {SHOW_FIELDS[i-1]: row[i] for i in range(1, len(SHOW_FIELDS))}
             show['cast'] = [a.strip() for a in show['cast'].split(',')]
             show['listed_in'] = [s.strip() for s in show['listed_in'].split(',')]
             print(json.dumps(show, indent=2, sort_keys=True))

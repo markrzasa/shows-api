@@ -1,5 +1,9 @@
 version: '3.7'
 
+networks:
+  postgres:
+    name: postgres
+
 volumes:
   postgres:
     name: postgres
@@ -13,6 +17,8 @@ services:
       POSTGRES_DB: shows
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
+    networks:
+      - postgres
     ports:
       - 5432:5432
     volumes:
@@ -22,5 +28,7 @@ services:
     container_name: adminer
     image: adminer
     restart: always
+    networks:
+      - postgres
     ports:
       - 8080:8080

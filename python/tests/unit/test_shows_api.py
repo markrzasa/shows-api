@@ -3,13 +3,13 @@ import sys
 import unittest
 
 from fastapi import HTTPException
-from unittest.mock import patch, MagicMock
-
-from app.models.shows import Show
+from unittest.mock import patch, MagicMock, call
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from app.routers.shows import list_shows, get, put, create
+from app import persistence
+from app.rest.models.shows import Show, ShowCreate
+from app.rest.routers.shows import list_shows, get, put, create
 
 
 class TestShowsApi(unittest.IsolatedAsyncioTestCase):
@@ -17,58 +17,82 @@ class TestShowsApi(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(HTTPException):
             await list_shows(sort=['not valid', 'also not valid'], filter=[])
 
-    @patch('app.routers.shows.DatabaseConnection')
-    async def test_list_valid_sort_field(self, db_connection):
-        _, cursor = self.mock_connection(db_connection)
+    @patch('app.rest.routers.shows.Engine')
+    async def test_list_valid_sort_field(self, engine):
+        session, query = self.mock_session(engine)
         sort_setting = ['title', 'description']
         await list_shows(sort=sort_setting, filter=[])
-        cursor.execute.assert_called_with(
-            f'SELECT * FROM shows ORDER BY {",".join(sort_setting)} collate "C" LIMIT 50 OFFSET 0;')
+        self.assertListEqual(
+            [call(persistence.Show.title), call(persistence.Show.description)],
+            query.order_by.call_args_list)
 
     async def test_list_invalid_filters_field(self):
         with self.assertRaises(HTTPException):
             await list_shows(sort=[], filter=['not valid', 'also not valid'])
 
-    @patch('app.routers.shows.DatabaseConnection')
-    async def test_list_valid_filters_field(self, db_connection):
-        _, cursor = self.mock_connection(db_connection)
+    @patch('app.rest.routers.shows.Engine')
+    async def test_list_valid_filters_field(self, engine):
+        session, query = self.mock_session(engine)
         filters = ['title=unittest', 'type=TV Show']
-        where_clause = ' AND '.join([
-            f'{c.split("=", 1)[0].strip()} LIKE \'%{c.split("=", 1)[-1].strip()}%\'' for c in filters
-        ])
         await list_shows(sort=['title'], filter=filters)
-        cursor.execute.assert_called_with((
-            f'SELECT * FROM shows WHERE {where_clause} ORDER BY title collate "C" LIMIT 50 OFFSET 0;'
-        ))
+        self.assertEqual(
+            [str(persistence.Show.title.like('unittest')), str(persistence.Show.type.like('TV Show'))],
+            [str(al.args[0]) for al in query.filter.call_args_list]
+        )
 
-    @patch('app.routers.shows.DatabaseConnection')
-    async def test_get_not_found(self, db_connection):
-        _, cursor = self.mock_connection(db_connection)
-        cursor.fetchone.return_value = None
+    @patch('app.rest.routers.shows.Engine')
+    async def test_get_not_found(self, engine):
+        _, query = self.mock_session(engine)
+        query.all.return_value = []
         with self.assertRaises(HTTPException):
-            await get('test-id')
+            await get(1)
 
-    @patch('app.routers.shows.DatabaseConnection')
-    async def test_put_not_found(self, db_connection):
-        _, cursor = self.mock_connection(db_connection)
-        cursor.fetchone.return_value = None
-        show = Show.construct(show_id='123', title='Unit the Test', type='TV Show')
+    @patch('app.rest.routers.shows.Engine')
+    async def test_get_found_too_many(self, engine):
+        _, query = self.mock_session(engine)
+        query.all.return_value = [MagicMock(), MagicMock()]
         with self.assertRaises(HTTPException):
-            await put('test-id', show)
+            await get(1)
 
-    @patch('app.routers.shows.DatabaseConnection')
-    async def test_create(self, db_connection):
-        _, cursor = self.mock_connection(db_connection)
-        show = Show.construct(title='Unit the Test', type='TV Show')
+    @patch('app.rest.routers.shows.Engine')
+    async def test_put_not_found(self, engine):
+        _, query = self.mock_session(engine)
+        query.all.return_value = []
+        show = Show.construct(show_id=123, title='Unit the Test', type='TV Show')
+        with self.assertRaises(HTTPException):
+            await put(1, show)
+
+    @patch('app.rest.routers.shows.Engine')
+    async def test_put_found_too_many(self, engine):
+        _, query = self.mock_session(engine)
+        query.all.return_value = [MagicMock(), MagicMock()]
+        show = Show.construct(show_id=123, title='Unit the Test', type='TV Show')
+        with self.assertRaises(HTTPException):
+            await put(1, show)
+
+    @patch('app.rest.routers.shows.Engine')
+    async def test_create(self, engine):
+        title = 'Unit the Test'
+        type = 'TV Show'
+        _, query = self.mock_session(engine)
+        filter = MagicMock()
+        db_show = MagicMock()
+        db_show.id = 1
+        db_show.title = title
+        db_show.type = type
+        filter.one.return_value = db_show
+        query.filter.return_value = filter
+        show = ShowCreate.construct(title=title, type=type)
         created_show = await create(show)
         self.assertIsNotNone(created_show.date_added)
-        self.assertIsNotNone(created_show.show_id)
+        self.assertIsNotNone(created_show.id)
 
     @classmethod
-    def mock_connection(cls, db_connection):
-        conn = MagicMock()
-        cursor = MagicMock()
-        cursor.fetchmany.return_value = []
-        conn.cursor.return_value.__enter__.return_value = cursor
-        db_connection.get_connection.return_value = conn
-        return conn, cursor
+    def mock_session(cls, engine: MagicMock) -> (MagicMock, MagicMock):
+        session = MagicMock()
+        query = MagicMock()
+        engine.new_session.return_value.__enter__.return_value = session
+        session.query.return_value = query
+        query.filter.return_value = query
+        query.order_by.return_value = query
+        return session, query

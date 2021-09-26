@@ -5,10 +5,10 @@ from fastapi import FastAPI
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from app import DatabaseConnection, init_logging
-from app.routers.alive import alive_router
-from app.routers.shows import shows_router
-from app.routers.summary import summary_router
+from app import Engine, init_logging
+from app.rest.routers.alive import alive_router
+from app.rest.routers.shows import shows_router
+from app.rest.routers.summary import summary_router
 
 tags_metadata = [
     {
@@ -26,8 +26,7 @@ tags_metadata = [
 ]
 
 app = FastAPI(
-    on_startup=[init_logging, DatabaseConnection.get_connection],
-    on_shutdown=[DatabaseConnection.close_connection],
+    on_startup=[init_logging, Engine.get_engine],
     openapi_tags=tags_metadata
 )
 

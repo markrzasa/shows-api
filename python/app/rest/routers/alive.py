@@ -5,8 +5,6 @@ from fastapi import APIRouter
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from app import DatabaseConnection
-
 alive_router = APIRouter(
     prefix='/alive',
     tags=['alive'],
@@ -19,4 +17,4 @@ async def alive():
     """
     return whether or not the service is alive
     """
-    return {'alive': True if DatabaseConnection.get_connection() else False}
+    return {'alive': True}
