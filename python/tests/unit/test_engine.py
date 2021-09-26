@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from app import Engine, SQL_PORT, SQL_DB, SQL_USER, SQL_HOST, SQL_PASS, to_db_value, init_logging
+from app import Engine, SQL_PORT, SQL_DB, SQL_USER, SQL_HOST, SQL_PASS, init_logging
 
 
 class TestEngine(unittest.TestCase):
@@ -61,6 +61,3 @@ class TestEngine(unittest.TestCase):
         create_engine.assert_called_with(f'postgresql+psycopg2://{SQL_USER}:{SQL_PASS}@{SQL_HOST}:{SQL_PORT}/{SQL_DB}')
         sessionmaker.assert_called_once()
         base.metadata.create_all.assert_called_once()
-
-    def test_escape_value(self):
-        self.assertEqual("'don''t'", to_db_value("don't"))

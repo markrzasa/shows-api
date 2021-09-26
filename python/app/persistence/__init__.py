@@ -12,13 +12,22 @@ class Show(Base):
     type = Column(String(collation='C'))
     title = Column(String(collation='C'))
     director = Column(String(collation='C'))
-    cast = Column(String(collation='C'))
     country = Column(String(collation='C'))
     date_added = Column(String(collation='C'))
     release_year = Column(String(collation='C'))
     rating = Column(String(collation='C'))
     duration = Column(String(collation='C'))
     description = Column(String(collation='C'))
+
+
+class Actor(Base):
+    __tablename__ = 'actor'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', 'name'),
+    )
+    id = Column(Integer, ForeignKey('shows.id', ondelete='CASCADE'))
+    name = Column(String)
+    items = relationship('Show')
 
 
 class ListedIn(Base):

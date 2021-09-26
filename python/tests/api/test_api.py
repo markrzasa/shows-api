@@ -274,6 +274,8 @@ class TestApi(unittest.TestCase):
 
     def assert_show(self, expected, actual):
         actual = {k: v for k, v in actual.items() if k in expected}
+        if 'cast' in expected:
+            expected['cast'] = sorted(expected['cast'])
         if 'listed_in' in expected:
             expected['listed_in'] = sorted(expected['listed_in'])
         self.assertDictEqual(expected, actual)

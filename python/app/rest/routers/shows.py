@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Query
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from app import Engine, persistence
-from app.persistence import SQL_COLUMNS, ListedIn
+from app.persistence import SQL_COLUMNS, ListedIn, Actor
 from app.rest.models.shows import Show, ShowCreate
 from lib import show_uri
 
@@ -23,10 +23,11 @@ shows_router = APIRouter(
 
 def from_db_show(session, show_id: int) -> Show:
     db_show = session.query(persistence.Show).filter(persistence.Show.id == show_id).one()
+    cast = session.query(persistence.Actor).filter(persistence.Actor.id == show_id).all()
     listed_in = session.query(persistence.ListedIn).filter(persistence.ListedIn.id == show_id).all()
     show = Show(type=db_show.type, title=db_show.title)
     show.director = db_show.director
-    show.cast = db_show.cast.split(',')
+    show.cast = sorted([actor.name for actor in cast])
     show.country = db_show.country
     show.date_added = db_show.date_added
     show.release_year = db_show.release_year
@@ -44,7 +45,6 @@ def to_db_show(show: ShowCreate) -> persistence.Show:
         type=show.type,
         title=show.title,
         director=show.director,
-        cast=','.join(show.cast),
         country=show.country,
         date_added=show.date_added,
         release_year=show.release_year,
@@ -52,6 +52,24 @@ def to_db_show(show: ShowCreate) -> persistence.Show:
         duration=show.duration,
         description=show.description
     )
+
+
+def update_cast(session, show_id: int, show: ShowCreate, db_show: persistence.Show = None):
+    actors = session.query(persistence.Actor).filter(persistence.Actor.id == show_id).all()
+    db_actors = [a.name for a in actors]
+    to_delete = list(set([a for a in db_actors if a not in show.cast]))
+    for d in to_delete:
+        actor = session.query(persistence.Actor).filter(
+            persistence.Actor.id == show_id).filter(
+            persistence.Actor.name == d).one()
+        session.delete(actor)
+
+    to_add = list(set([a for a in show.cast if a not in db_actors]))
+    for a in to_add:
+        actor = Actor()
+        actor.id = db_show.id
+        actor.name = a
+        session.add(actor)
 
 
 def update_listed_in(session, show_id: int, show: ShowCreate, db_show: persistence.Show = None):
@@ -156,6 +174,7 @@ async def put(show_id: int, show: Show):
             shows[0].duration = show.duration
         if show.description:
             shows[0].description = show.description
+        update_cast(session, show_id, show, shows[0])
         update_listed_in(session, show_id, show, shows[0])
         session.commit()
         return from_db_show(session, shows[0].id)
@@ -172,6 +191,7 @@ async def create(show: ShowCreate):
     db_show = to_db_show(show)
     with Engine.new_session() as session:
         session.add(db_show)
+        update_cast(session, db_show.id, show, db_show)
         update_listed_in(session, db_show.id, show, db_show)
         session.commit()
         return from_db_show(session, db_show.id)
