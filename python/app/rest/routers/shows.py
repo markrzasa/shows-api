@@ -116,9 +116,9 @@ async def get(show_id: int):
     with Engine.new_session() as session:
         shows = session.query(persistence.Show).filter_by(id=show_id).all()
         if len(shows) > 1:
-            raise HTTPException(status_code=500, detail=f'unexpected number of shows found')
+            raise HTTPException(status_code=500, detail='unexpected number of shows found')
         if len(shows) < 1:
-            raise HTTPException(status_code=404, detail=f'show not found')
+            raise HTTPException(status_code=404, detail='show not found')
         return from_db_show(session, shows[0].id)
 
 
@@ -132,9 +132,9 @@ async def put(show_id: int, show: Show):
     with Engine.new_session() as session:
         shows = session.query(persistence.Show).filter_by(id=show_id).all()
         if len(shows) > 1:
-            raise HTTPException(status_code=500, detail=f'unexpected number of shows found')
+            raise HTTPException(status_code=500, detail='unexpected number of shows found')
         if len(shows) < 1:
-            raise HTTPException(status_code=404, detail=f'show not found')
+            raise HTTPException(status_code=404, detail='show not found')
 
         if show.type:
             shows[0].type = show.type
@@ -186,7 +186,7 @@ async def delete(show_id: int):
     with Engine.new_session() as session:
         shows = session.query(persistence.Show).filter_by(id=show_id).all()
         if len(shows) > 1:
-            raise HTTPException(status_code=500, detail=f'unexpected number of shows to delete')
+            raise HTTPException(status_code=500, detail='unexpected number of shows to delete')
         if len(shows) == 1:
             session.delete(shows[0])
             session.commit()

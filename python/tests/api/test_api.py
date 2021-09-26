@@ -80,12 +80,11 @@ class TestApi(unittest.TestCase):
         cls.logger.info('populating service with shows')
         cls.delete_all()
         with open(CSV_FILE) as handle:
-            shows_url = f'{SHOWS_API}/'
             reader = csv.reader(handle, delimiter=',', quotechar='"')
             next(reader)
             for i in range(NUM_TEST_SHOWS):
                 row = next(reader)
-                show = {SHOW_FIELDS[i-1]: row[i] for i in range(1, len(SHOW_FIELDS))}
+                show = {SHOW_FIELDS[i - 1]: row[i] for i in range(1, len(SHOW_FIELDS))}
                 cls.logger.info(f'creating show {show["title"]}')
                 show['cast'] = [a.strip() for a in show['cast'].split(',')]
                 show['listed_in'] = [s.strip() for s in show['listed_in'].split(',')]
